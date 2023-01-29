@@ -1,0 +1,23 @@
+{
+  "name": "Ai Sponsor Removal",
+  "description": "Automatically Skips Sponsor Segments on Youtube",
+  "version": "0.0.1",
+  "manifest_version": 3,
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_title": "Ai Sponsor Removal",
+    "default_popup": "next/index.html"
+  }
+}
