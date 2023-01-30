@@ -1,9 +1,11 @@
+export {}
+
 function waitForSelector(selector: string): Promise<any> {
     return new Promise(resolve => {
         if (document.querySelector(selector)) {
             return resolve({})
         }
-        const observer = new MutationObserver(mutations => {
+        const observer = new MutationObserver(() => {
             if (document.querySelector(selector)) {
                 resolve({})
                 observer.disconnect();
@@ -23,11 +25,11 @@ async function wait(ms: number) {
 
 let currentId = 0;
 
-document.addEventListener('yt-navigate-finish', async (event) => {
+document.addEventListener('yt-navigate-finish', async () => {
     await removeSponsors();
 });
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message) => {
     switch (message.type) {
         case 'reload': {
             removeSponsors();
@@ -43,8 +45,14 @@ async function removeSponsors() {
 
     await waitForSelector(".ytd-channel-name>div>yt-formatted-string>a")
 
-    const videoID = /(.*?)(^|\/|v=)([a-z0-9_-]{11})(.*)?/gi.exec(window.location.href)![3];
-    const channel = /(.*?)(^|\/|v=)@(.*)/gi.exec((document.querySelector(".ytd-channel-name>div>yt-formatted-string>a")! as HTMLLinkElement).href)![3]
+    let videoID, channel;
+
+    try {
+        videoID = /(.*?)(^|\/|v=)([a-z0-9_-]{11})(.*)?/gi.exec(window.location.href)![3];
+        channel = /(.*?)(^|\/|v=)@(.*)/gi.exec((document.querySelector(".ytd-channel-name>div>yt-formatted-string>a")! as HTMLLinkElement).href)![3]
+    } catch (e) {
+        return;
+    }
 
     chrome.runtime.sendMessage({
         "type": "update",
@@ -57,21 +65,33 @@ async function removeSponsors() {
         "mention": channel
     });
 
-    const timeStamps: { start: number, end: number }[] | undefined = await chrome.runtime.sendMessage({
-        "type": "getTimes",
-        "id": videoID
-    });
-
     const disabled = await disabledPromise;
 
     if (disabled) {
         return;
     }
 
+    const loadingElement = document.createElement("div");
+    loadingElement.dir = "auto";
+    loadingElement.className = "style-scope yt-formatted-string bold";
+    loadingElement.style.color = "yellow";
+    loadingElement.innerText = "Loading Sponsor Times...\n";
+
+    document.querySelector("yt-formatted-string#info")!.appendChild(loadingElement)
+
+    const timeStamps: { start: number, end: number }[] | undefined = await chrome.runtime.sendMessage({
+        "type": "parseSRT",
+        "id": videoID
+    });
+
     if (!timeStamps) {
-        console.log("No times found for video " + videoID);
+        loadingElement.innerText = "Error Finding Sponsor Times";
+        loadingElement.style.color = "red";
         return;
     }
+
+    loadingElement.remove();
+
     const active = () => currentId === id;
     await waitForSelector("#movie_player:not(.ad-showing)")
     if (!active()) return;

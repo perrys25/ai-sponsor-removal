@@ -7,17 +7,18 @@ const Home: NextPage = () => {
     const [global, setGlobal] = React.useState(true);
     const [specific, setSpecific] = React.useState(false);
     const [currentChannel, setCurrentChannel] = React.useState<string | undefined>(undefined);
-    const [youtubeVideo, setYoutubeVideo] = React.useState("");
-    const [selectedFile, setSelectedFile] = React.useState<File | undefined>(undefined);
-    const [uploading, setUploading] = React.useState(false);
+    const [openAIKey, setOpenAIKey] = React.useState<string>("");
 
     useEffect(() => {
         (async () => {
+            const key = await chrome.storage.sync.get("openAIKey");
+            setOpenAIKey(key.openAIKey ?? "");
             const channel = await chrome.runtime.sendMessage({
                 "type": "currentChannel",
             });
             setCurrentChannel(channel.channel);
             setSpecific(channel.disabled ?? false)
+            setGlobal((chrome.storage.sync.get("global") as any).global ?? true);
         })();
     }, [])
 
@@ -30,6 +31,20 @@ const Home: NextPage = () => {
                 <div css={tw`flex justify-center bg-gray-200 flex-col`}>
                     <div css={tw`flex flex-row`}>
                         <p css={tw`px-2 whitespace-nowrap`}>
+                            Open AI Key
+                        </p>
+                        <input
+                            type="text"
+                            value={openAIKey}
+                            onChange={(e) => {
+                                setOpenAIKey(e.target.value);
+                                chrome.storage.sync.set({openAIKey: e.target.value});
+                            }}
+                            css={tw`mr-2 ml-auto`}
+                        />
+                    </div>
+                    <div css={tw`flex flex-row`}>
+                        <p css={tw`px-2 whitespace-nowrap`}>
                             Global Enable
                         </p>
                         <input
@@ -37,6 +52,7 @@ const Home: NextPage = () => {
                             checked={global}
                             onChange={() => {
                                 setGlobal(!global)
+                                chrome.storage.sync.set({global: !global});
                             }}
                             css={tw`mr-2 ml-auto`}
                         />
@@ -55,44 +71,6 @@ const Home: NextPage = () => {
                             css={tw`mr-2 ml-auto`}
                         />
                     </div>}
-                    <p css={tw`px-2 whitespace-nowrap`}>
-                        {uploading ? `Uploading... This may take a while` : `Upload Transcript`}
-                    </p>
-                    <input
-                        type="text"
-                        value={youtubeVideo}
-                        onChange={(event) => {
-                            setYoutubeVideo(event.target.value)
-                        }}
-                        css={tw`mr-2 ml-auto`}
-                    />
-                    <input type="file" name="file" onChange={(event) => {
-                        setSelectedFile(event.target.files![0]);
-                    }}
-                    />
-                    <button
-                        css={tw`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded`}
-                        onClick={async () => {
-                            if (selectedFile) {
-                                const reader = new FileReader()
-                                reader.onload = async (e) => {
-                                    const text = (e.target!.result)
-                                    setUploading(true);
-                                    console.log(text);
-                                    await chrome.runtime.sendMessage({
-                                        "type": "parseSRT",
-                                        "srt": text,
-                                        "id": youtubeVideo
-                                    });
-                                    setUploading(false);
-                                };
-                                console.log("reading file");
-                                reader.readAsText(selectedFile!)
-                            }
-                        }}
-                    >
-                        Upload
-                    </button>
                 </div>
             </div>
         </div>

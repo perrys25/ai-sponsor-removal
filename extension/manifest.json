@@ -7,13 +7,20 @@
     "activeTab",
     "storage"
   ],
+  "host_permissions": [
+    "*://*.youtubetranscript.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["*://*.youtube.com/*"],
-      "js": ["content.js"]
+      "matches": [
+        "*://*.youtube.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "action": {

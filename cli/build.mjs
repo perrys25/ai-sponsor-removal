@@ -33,14 +33,14 @@ await fs.promises.cp("out", "extension-out/next", {recursive: true})
 
 await fs.promises.cp("extension", "extension-out", {recursive: true})
 
-for (const build of [exec("tsc ./background/background.ts --outDir extension-out "), exec("tsc ./content/content.ts --outDir extension-out")]) {
-    if (build.stdout) {
-        console.log(build.stdout);
+    for (const build of [exec("npx webpack -c .\\webpack.config.content.js"), exec("npx webpack -c .\\webpack.config.background.js")]) {
+        if (build.stdout) {
+            console.log(build.stdout);
+        }
+        if (build.stderr) {
+            console.error(build.stderr);
+        }
     }
-    if (build.stderr) {
-        console.error(build.stderr);
-    }
-}
 
 for (const dir of ["out"]) {
     if (fs.existsSync(dir)) {
